@@ -42,8 +42,6 @@ def hashed_password(password : str) -> str:
 def verify_password(plain_password:str, hash_password: str) -> bool :
     return pwd_context.verify(plain_password, hash_password)
 
-def decode_token(token: str):
-    return jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
 
 origins = [
     "http://localhost:5173",
@@ -103,16 +101,15 @@ class RecognitionPhotoModel(BaseModel):
 
 # Dependency for user authentication
 @manager.user_loader
-async def load_user(username: str):
+def load_user(username: str):
     try:
-        user = await db.user.find_first(where={"username": username})
-        if user:
-            print(f"Found user: {user}")
-        else:
-            print(f"User with username {username} not found.")
+        user = asyncio.run(db.user.find_first(where={"username": username}))
+        if not user:
+            print(f"User {username} not found")
+            return None
         return user
     except Exception as e:
-        print(f"Error in user loader: {str(e)}")
+        print(f"Error loading user: {e}")
         return None
 
     
@@ -144,6 +141,21 @@ EMPLOYEE_COLLECTION = "employee_embeddings"
 VISITOR_COLLECTION = "visitor_embeddings"
 
 MODEL_NAME = "VGG-Face"
+
+async def ensure_db_connection():
+    """
+    Ensures that the Prisma database client is connected. 
+    If not connected, attempts to establish the connection.
+    """
+    try:
+        if not db.is_connected():
+            print("Prisma client not connected. Attempting to connect...")
+            await db.connect()
+            print("Prisma database connection established.")
+    except Exception as e:
+        print(f"Error ensuring Prisma database connection: {e}")
+        raise RuntimeError("Failed to connect to the database.")
+
 
 # Greeting API endpoint
 @app.get("/")
@@ -267,52 +279,85 @@ def search_in_milvus(collection_name, query_embedding, threshold=0.6):
 
 
 # Authentication Endpoints
+# @app.post("/auth/token")
+# async def login_for_access_token(data: UserLoginModel):
+#     try:
+#         user = await load_user(data.username)
+#         if not user:
+#             raise HTTPException(status_code=401, detail="User not found")
+
+#         # Verify password
+#         if not verify_password(data.password, user.hashedPassword): 
+#             raise HTTPException(status_code=401, detail="Invalid username or password")
+
+#         # Create access token
+#         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+#         access_token = manager.create_access_token(
+#             data={
+#             "sub": user.username,
+#             "role": user.role,
+#             "email": user.email
+#     },
+#              expires=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+#         )
+
+#         return {"access_token": access_token, "token_type": "bearer"}
+#     except HTTPException as e:
+#         print(f"Authentication error: {e.detail}")
+#         raise
+#     except Exception as e:
+#         print(f"Unexpected error during login: {str(e)}")
+#         raise HTTPException(status_code=500, detail="Internal server error")
 @app.post("/auth/token")
 async def login_for_access_token(data: UserLoginModel):
-    try:
-        # Retrieve user from the database
-        user = await load_user(data.username)
-        if not user:
-            raise HTTPException(status_code=401, detail="User not found")
+    await ensure_db_connection()
+    user = load_user(data.username)
+    if not user or not verify_password(data.password, user.hashedPassword):
+        raise HTTPException(status_code=401, detail="Invalid username or password")
 
-        # Verify password
-        if not verify_password(data.password, user.hashedPassword): 
-            raise HTTPException(status_code=401, detail="Invalid username or password")
-
-        # Create access token
-        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-        access_token = manager.create_access_token(
-            data={"sub": user.username},
-            expires=access_token_expires
-        )
-
-        return {"access_token": access_token, "token_type": "bearer"}
-    except HTTPException as e:
-        print(f"Authentication error: {e.detail}")
-        raise
-    except Exception as e:
-        print(f"Unexpected error during login: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal server error")
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = manager.create_access_token(
+        data={"sub": user.username, "role": user.role},
+        expires=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
+# @app.post("/register-user/")
+# async def register_user(user: UserRegistrationModel):
+#     try:
+#         hashed_pw = hashed_password(user.password)
+#         created_user = await db.user.create(
+#             data={
+#                 "username": user.username,
+#                 "email": user.email,
+#                 "fullName": user.fullName,
+#                 "hashedPassword": hashed_pw,
+#                 "role": user.role
+#             }
+#         )
+#         return {"message": "User registered successfully", "user": created_user}
+#     except Exception as e:
+#         print(f"Registration error: {str(e)}")
+#         raise HTTPException(status_code=500, detail=f"Error during registration: {str(e)}")
 
 @app.post("/register-user/")
 async def register_user(user: UserRegistrationModel):
-    try:
-        hashed_pw = hashed_password(user.password)
-        created_user = await db.user.create(
-            data={
-                "username": user.username,
-                "email": user.email,
-                "fullName": user.fullName,
-                "hashedPassword": hashed_pw,
-                "role": user.role
-            }
-        )
-        return {"message": "User registered successfully", "user": created_user}
-    except Exception as e:
-        print(f"Registration error: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error during registration: {str(e)}")
+    await ensure_db_connection()
+    if await db.user.find_first(where={"username": user.username}):
+        raise HTTPException(status_code=400, detail="Username already registered")
+    
+    hashed_pw = hashed_password(user.password)
+    created_user = await db.user.create(
+        data={
+            "username": user.username,
+            "email": user.email,
+            "fullName": user.fullName,
+            "hashedPassword": hashed_pw,
+            "role": user.role
+        }
+    )
+    return {"message": "User registered successfully", "user": created_user}
 
 
 
