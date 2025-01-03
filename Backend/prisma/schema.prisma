@@ -1,56 +1,54 @@
+generator client {
+  provider             = "prisma-client-py"
+  recursive_type_depth = "5"
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-generator client {
-  provider             = "prisma-client-py"
-  recursive_type_depth = 5
-}
-
 model Employee {
-  id          Int      @id @default(autoincrement())
-  name        String
-  age         Int
-  gender      String
-  photoBase64 String   @db.Text
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
-
+  id            Int      @id @default(autoincrement())
+  name          String
+  age           Int
+  gender        String
+  photoBase64   String
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
   designation   String
   contactNumber String
   department    String
-  description   String @db.Text
+  description   String
 
   @@map("employees")
 }
 
 model Visitor {
-  id          Int      @id @default(autoincrement())
-  name        String
-  age         Int
-  gender      String
-  photoBase64 String   @db.Text
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
-
-  contact  String
-  purposeOfVisit String @db.Text
-  description    String @db.Text
+  id             Int      @id @default(autoincrement())
+  name           String
+  age            Int
+  gender         String
+  photoBase64    String
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  contact        String
+  purposeOfVisit String
+  description    String
 
   @@map("visitors")
 }
 
 model User {
-  id           Int      @id @default(autoincrement())
-  username     String   @unique
-  email        String   @unique
-  fullName     String   @map("fullName")
-  hashedPassword String @map("hashed_password")
-  role         String   @default("user")
-  disabled     Boolean  @default(false)
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  id             Int      @id @default(autoincrement())
+  username       String   @unique
+  email          String   @unique
+  fullName       String   @map("fullName")
+  hashedPassword String   @map("hashed_password")
+  role           String   @default("user")
+  disabled       Boolean  @default(false)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@map("users")
 }

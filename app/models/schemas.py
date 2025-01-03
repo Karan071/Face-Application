@@ -1,13 +1,11 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
-class UserBase(BaseModel):
-    name: str
-    age: int
-    gender: str
+class UserRegistrationModel(BaseModel):
+    username: str
+    email: EmailStr
+    fullName: str  # Exactly matching Prisma schema
+    password: str
+    role: str = "user"
 
-class UserCreate(UserBase):
-    photo: bytes
-
-class UserResponse(UserBase):
-    createdAt: str
-    updatedAt: str
+    class Config:
+        from_attributes = True

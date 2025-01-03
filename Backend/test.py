@@ -17,11 +17,13 @@ import time
 from fastapi_login import LoginManager
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
+from passlib.context import CryptContext
+from jose import jwt
 
 # Suppress TensorFlow warnings
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
-SECRET_KEY = "your-secret-key"
+SECRET_KEY = "Karan-face-application-key"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 app = FastAPI(
@@ -32,6 +34,16 @@ app = FastAPI(
 
 # Initialize LoginManager
 manager = LoginManager(SECRET_KEY, token_url="/auth/token")
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated = "auto")
+
+def hashed_password(password : str) -> str:
+    return pwd_context.hash(password)
+
+def verify_password(plain_password:str, hash_password: str) -> bool :
+    return pwd_context.verify(plain_password, hash_password)
+
+def decode_token(token: str):
+    return jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
 
 origins = [
     "http://localhost:5173",
@@ -49,7 +61,16 @@ app.add_middleware(
 # Initialize Prisma client
 db = Prisma()
 
-# Pydantic Models
+
+# Pydantic model for user registration
+class UserRegistrationModel(BaseModel):
+    username: str
+    email: EmailStr
+    fullName: str = Field(..., alias="fullName")
+    password: str
+    role: str = "user"
+
+
 class User(BaseModel):
     username: str
     password: str
@@ -82,9 +103,19 @@ class RecognitionPhotoModel(BaseModel):
 
 # Dependency for user authentication
 @manager.user_loader
-def load_user(username: str):
-    return db.user.find_first(where={"username": username})
+async def load_user(username: str):
+    try:
+        user = await db.user.find_first(where={"username": username})
+        if user:
+            print(f"Found user: {user}")
+        else:
+            print(f"User with username {username} not found.")
+        return user
+    except Exception as e:
+        print(f"Error in user loader: {str(e)}")
+        return None
 
+    
 @app.on_event("startup")
 async def startup():
     max_retries = 5
@@ -113,6 +144,11 @@ EMPLOYEE_COLLECTION = "employee_embeddings"
 VISITOR_COLLECTION = "visitor_embeddings"
 
 MODEL_NAME = "VGG-Face"
+
+# Greeting API endpoint
+@app.get("/")
+async def root():
+    return {"message": "Welcome to the face recognition app!"}
 
 def connect_to_milvus():
     attempts = 5
@@ -228,19 +264,59 @@ def search_in_milvus(collection_name, query_embedding, threshold=0.6):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error during search: {str(e)}")
 
+
+
 # Authentication Endpoints
 @app.post("/auth/token")
 async def login_for_access_token(data: UserLoginModel):
-    user = load_user(data.username)
-    if not user or user.password != data.password:
-        raise HTTPException(status_code=401, detail="Invalid username or password")
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = manager.create_access_token(
-        data={"sub": user.username},
-        expires=access_token_expires
-    )
-    return {"access_token": access_token, "token_type": "bearer"}
+    try:
+        # Retrieve user from the database
+        user = await load_user(data.username)
+        if not user:
+            raise HTTPException(status_code=401, detail="User not found")
 
+        # Verify password
+        if not verify_password(data.password, user.hashedPassword): 
+            raise HTTPException(status_code=401, detail="Invalid username or password")
+
+        # Create access token
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = manager.create_access_token(
+            data={"sub": user.username},
+            expires=access_token_expires
+        )
+
+        return {"access_token": access_token, "token_type": "bearer"}
+    except HTTPException as e:
+        print(f"Authentication error: {e.detail}")
+        raise
+    except Exception as e:
+        print(f"Unexpected error during login: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+
+@app.post("/register-user/")
+async def register_user(user: UserRegistrationModel):
+    try:
+        hashed_pw = hashed_password(user.password)
+        created_user = await db.user.create(
+            data={
+                "username": user.username,
+                "email": user.email,
+                "fullName": user.fullName,
+                "hashedPassword": hashed_pw,
+                "role": user.role
+            }
+        )
+        return {"message": "User registered successfully", "user": created_user}
+    except Exception as e:
+        print(f"Registration error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error during registration: {str(e)}")
+
+
+
+# main end points - Facial Recognition
 @app.post("/register-employee/")
 async def register_employee(
     employee: EmployeeRegistrationModel,
@@ -329,6 +405,7 @@ async def recognize_visitor(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error in recognition: {str(e)}")
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8000)

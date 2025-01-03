@@ -104,7 +104,7 @@ const CheckInPage = () => {
             <button
               type="sumit"
               onClick={handleSubmit}
-              className="mt-3 text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-full text-sm px-6 py-3 transition-all duration-200 ease-in-out"
+              className="mt-3 text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-full text-sm px-6 py-3 transition-all duration-200 ease-in-out"
             >
               Submit
             </button>

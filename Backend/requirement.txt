@@ -1,0 +1,6 @@
+prisma
+pymilvus
+deepface
+fastapi[standard]
+tf-keras
+asyncio
