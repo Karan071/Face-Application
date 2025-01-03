@@ -1,0 +1,7 @@
+__pycache__
+venv
+prisma/migrations
+
+volumes
+backend
+ 

@@ -1,0 +1,33 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider             = "prisma-client-py"
+  recursive_type_depth = 5
+}
+
+model Employee {
+  id          Int      @id @default(autoincrement())
+  name        String
+  age         Int
+  gender      String
+  photoBase64 String   @db.Text
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("employees")
+}
+
+model Visitor {
+  id          Int      @id @default(autoincrement())
+  name        String
+  age         Int
+  gender      String
+  photoBase64 String   @db.Text
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("visitors")
+}

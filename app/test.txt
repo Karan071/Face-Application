@@ -1,0 +1,285 @@
+f@rom fastapi import FastAPI, HTTPException, UploadFile, Form, Depends
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from prisma import Prisma
+from prisma.errors import PrismaError
+from pymilvus import connections, Collection
+from deepface import DeepFace
+from PIL import Image
+import numpy as np
+import os
+import base64
+import uvicorn
+import asyncio
+from datetime import datetime, timedelta
+from jose import JWTError, jwt
+from passlib.context import CryptContext
+from typing import Optional, List
+
+# Suppress TensorFlow warnings
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+
+app = FastAPI(
+    title="Face Recognition",
+    description="Backend for Face Recognition App with Prisma, Milvus, and OAuth2 Authentication",
+    version="1.0"
+)
+
+# CORS Setup
+origins = [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:8000",
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Prisma client initialization
+db = Prisma()
+
+# Constants
+SECRET_KEY = "your_secret_key_here"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+# Password hashing
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+# Milvus configuration
+MILVUS_HOST = os.getenv("MILVUS_HOST", "localhost")
+MILVUS_PORT = os.getenv("MILVUS_PORT", "19530")
+EMPLOYEE_COLLECTION = "employee_embeddings"
+VISITOR_COLLECTION = "visitor_embeddings"
+MODEL_NAME = "VGG-Face"
+
+# Prisma DB connection
+@app.on_event("startup")
+async def startup():
+    max_retries = 5
+    for attempt in range(max_retries):
+        try:
+            await db.connect()
+            print("Connected to Prisma database")
+            break
+        except PrismaError as e:
+            if attempt == max_retries - 1:
+                raise RuntimeError(f"Database connection failed after {max_retries} attempts")
+            print(f"Retrying Prisma database connection ({attempt + 1}/{max_retries})...")
+            await asyncio.sleep(5)
+
+    connect_to_milvus()
+    preload_deepface_model()
+
+@app.on_event("shutdown")
+async def shutdown():
+    await db.disconnect()
+    if connections.has_connection("default"):
+        connections.remove_connection("default")
+
+# JWT Helper Functions
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
+
+def get_password_hash(password: str) -> str:
+    return pwd_context.hash(password)
+
+def create_access_token(data: dict, expires_delta: Optional[int] = None) -> str:
+    to_encode = data.copy()
+    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+async def get_current_user(token: str = Depends(oauth2_scheme)):
+    credentials_exception = HTTPException(
+        status_code=401,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+
+    user = await db.user.find_first(where={"username": username})
+    if user is None:
+        raise credentials_exception
+    return user
+
+async def get_current_active_user(current_user: dict = Depends(get_current_user)):
+    if current_user.disabled:
+        raise HTTPException(status_code=400, detail="Inactive user")
+    return current_user
+
+# Milvus Helpers
+def connect_to_milvus():
+    attempts = 5
+    for attempt in range(attempts):
+        try:
+            if connections.has_connection("default"):
+                connections.remove_connection("default")
+            
+            connections.connect(
+                alias="default",
+                host=MILVUS_HOST,
+                port=MILVUS_PORT,
+                timeout=60
+            )
+            print(f"Connected to Milvus at {MILVUS_HOST}:{MILVUS_PORT}")
+            return
+        except Exception as e:
+            print(f"Milvus connection attempt {attempt + 1} failed: {e}")
+            time.sleep(5)
+    raise RuntimeError("Failed to connect to Milvus after several attempts")
+
+def preload_deepface_model():
+    try:
+        dummy_image = np.zeros((224, 224, 3), dtype=np.uint8)
+        dummy_image_path = tempfile.NamedTemporaryFile(suffix=".jpg", delete=False).name
+        Image.fromarray(dummy_image).save(dummy_image_path)
+        DeepFace.represent(img_path=dummy_image_path, model_name=MODEL_NAME, enforce_detection=False)
+        os.remove(dummy_image_path)
+        print("DeepFace model preloaded successfully")
+    except Exception as e:
+        print(f"Error preloading DeepFace model: {str(e)}")
+
+# Prisma ORM Helpers
+async def save_user(username: str, full_name: str, email: str, hashed_password: str, role: str = "user"):
+    return await db.user.create(
+        data={"username": username, "full_name": full_name, "email": email, "hashed_password": hashed_password, "role": role}
+    )
+
+async def authenticate_user(username: str, password: str):
+    user = await db.user.find_first(where={"username": username})
+    if not user or not verify_password(password, user.hashed_password):
+        return False
+    return user
+
+# Routes for Authentication
+@app.post("/token")
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+    user = await authenticate_user(form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(
+            status_code=401,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token = create_access_token(data={"sub": user.username})
+    return {"access_token": access_token, "token_type": "bearer"}
+
+@app.post("/register/")
+async def register_user(
+    username: str = Form(...),
+    password: str = Form(...),
+    email: str = Form(...),
+    full_name: str = Form(...),
+    role: str = Form("user"),
+):
+    hashed_password = get_password_hash(password)
+    user = await save_user(username, full_name, email, hashed_password, role)
+    return {"message": "User registered successfully"}
+
+@app.get("/users/me")
+async def read_users_me(current_user: dict = Depends(get_current_active_user)):
+    return current_user
+
+# Protected Endpoints
+@app.post("/register-employee/")
+async def register_employee(
+    name: str = Form(...),
+    age: int = Form(...),
+    gender: str = Form(...),
+    photo: UploadFile = None,
+    designation: str = Form(...),
+    contact_number: str = Form(...),
+    department: str = Form(...),
+    description: str = Form(...),
+    current_user: dict = Depends(get_current_active_user)
+):
+    # Logic for employee registration (protected)
+    pass
+
+@app.post("/register-visitor/")
+async def register_visitor(
+    name: str = Form(...),
+    age: int = Form(...),
+    gender: str = Form(...),
+    photo: UploadFile = None,
+    contact: str = Form(...),
+    purpose_of_visit: str = Form(...),
+    description: str = Form(...),
+    current_user: dict = Depends(get_current_active_user)
+):
+    # Logic for visitor registration (protected)
+    pass
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="127.0.0.1", port=8000)
+
+
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider             = "prisma-client-py"
+  recursive_type_depth = 5
+}
+
+model Employee {
+  id          Int      @id @default(autoincrement())
+  name        String
+  age         Int
+  gender      String
+  photoBase64 String   @db.Text
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  designation   String
+  contactNumber String
+  department    String
+  description   String @db.Text
+
+  @@map("employees")
+}
+
+model Visitor {
+  id          Int      @id @default(autoincrement())
+  name        String
+  age         Int
+  gender      String
+  photoBase64 String   @db.Text
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  contact       String
+  purposeOfVisit String @db.Text
+  description    String @db.Text
+
+  @@map("visitors")
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  email        String   @unique
+  fullName     String   @map("full_name")
+  hashedPassword String @map("hashed_password")
+  role         String   @default("user")
+  disabled     Boolean  @default(false)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("users")
+}
