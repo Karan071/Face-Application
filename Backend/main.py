@@ -1,9 +1,9 @@
 # working code - without authentication
-from fastapi import FastAPI, HTTPException, UploadFile, Form, File, Depends
+from fastapi import FastAPI, HTTPException, UploadFile, Form, File, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from prisma import Prisma
 from prisma.errors import PrismaError
-from pymilvus import connections, Collection
+from pymilvus import connections, CollectionSchema, Collection, FieldSchema, DataType, utility
 from deepface import DeepFace
 from PIL import Image
 import numpy as np
@@ -17,7 +17,7 @@ import tempfile
 import time
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from auth import AuthService
-import logging
+import logging 
 
 
 # Suppress TensorFlow warnings
@@ -89,29 +89,13 @@ VISITOR_COLLECTION = "visitor_embeddings"
 
 MODEL_NAME = "VGG-Face"
 
-def create_milvus_collection(collection_name):
-    """Create Milvus collection if it doesn't exist"""
-    if not Collection.loaded_collection_names or collection_name not in Collection.loaded_collection_names:
-        from pymilvus import CollectionSchema, FieldSchema, DataType
-        
-        # Define fields for the collection
-        fields = [
-            FieldSchema(name="name", dtype=DataType.VARCHAR, max_length=200, is_primary=True),
-            FieldSchema(name="embedding", dtype=DataType.FLOAT_VECTOR, dim=2622)  # VGG-Face dimension
-        ]
-        
-        schema = CollectionSchema(fields=fields, description=f"Schema for {collection_name}")
-        collection = Collection(name=collection_name, schema=schema)
-        
-        # Create index for the embedding field
-        index_params = {
-            "metric_type": "IP",
-            "index_type": "IVF_FLAT",
-            "params": {"nlist": 1024}
-        }
-        collection.create_index(field_name="embedding", index_params=index_params)
-        print(f"Created collection: {collection_name}")
-        return collection
+# Help loading the milvus collections
+def load_collection(collection_name):
+    collection = Collection(name=collection_name)
+    collection.load()
+    print(f"Collection '{collection_name}' loaded into memory.")
+
+
 
 def connect_to_milvus():
     attempts = 5
@@ -128,9 +112,9 @@ def connect_to_milvus():
             )
             print(f"Connected to Milvus at {MILVUS_HOST}:{MILVUS_PORT}")
             
-            # Create collections if they don't exist
-            create_milvus_collection(EMPLOYEE_COLLECTION)
-            create_milvus_collection(VISITOR_COLLECTION)
+            
+            load_collection(EMPLOYEE_COLLECTION)
+            load_collection(VISITOR_COLLECTION)
             
             return True
         except Exception as e:
@@ -153,6 +137,7 @@ def preload_deepface_model():
         print(f"Error during DeepFace model preload: {str(e)}")
 
 # --- Face Embedding Utilities ---
+
 def extract_face_embedding(photo_bytes: bytes):
     """
     Extract face embedding using DeepFace with built-in detection.
@@ -198,7 +183,7 @@ async def save_to_prisma(name: str, age: int, gender: str, photo_base64: str, ta
                 "gender": gender,
                 "photoBase64": photo_base64,
                 **additional_data  
-            }
+            } # photo: UploadFile = File(...),
         )
     elif table == "visitor":
         record = await db.visitor.create(
@@ -244,8 +229,9 @@ async def register_user(form_data: OAuth2PasswordRequestForm = Depends()):
         await auth_service.register_user(
             username=form_data.username,
             password=form_data.password,
-            email=form_data.client_id or "",  # Using client_id field for email
-            full_name=form_data.client_secret or "",  # Using client_secret field for full name
+            email=form_data.email, 
+            fullName=form_data.fullName,
+            role=form_data.role
         )
         return {"message": "User registered successfully"}
     except ValueError as e:
@@ -280,7 +266,7 @@ async def verify_token(token: str = Depends(oauth2_scheme)):
         )
     return token
 
-# Protected routes - add authentication requirement
+# Protected routes 
 @app.post("/register-employee/")
 async def register_employee(
     token: str = Depends(verify_token),
@@ -316,7 +302,6 @@ async def register_visitor(
     name: str = Form(...),
     age: int = Form(...),
     gender: str = Form(...),
-    # photo: UploadFile = File(...),
     photo: UploadFile = None,
     contact: str = Form(...),
     purposeOfVisit: str = Form(...),
