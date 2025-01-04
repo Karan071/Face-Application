@@ -4,3 +4,6 @@ deepface
 fastapi[standard]
 tf-keras
 asyncio
+fastapi-login
+passlib
+python-jose
