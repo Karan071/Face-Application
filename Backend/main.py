@@ -1,5 +1,5 @@
 # working code - without authentication
-from fastapi import FastAPI, HTTPException, UploadFile, Form, File
+from fastapi import FastAPI, HTTPException, UploadFile, Form, File, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from prisma import Prisma
 from prisma.errors import PrismaError
@@ -15,6 +15,10 @@ from datetime import datetime
 import pytz
 import tempfile
 import time
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from auth import AuthService
+import logging
+
 
 # Suppress TensorFlow warnings
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
@@ -45,13 +49,23 @@ app.add_middleware(
 # Initialize Prisma client
 db = Prisma()
 
+# Initialize components
+logger = logging.getLogger("face-app")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
+
+# Initialize auth service after Prisma client
+auth_service = None
+
 @app.on_event("startup")
 async def startup():
+    global auth_service
     max_retries = 5
     for attempt in range(max_retries):
         try:
             await db.connect()
             print("Connected to PostgreSQL database")
+            # Initialize auth service after database connection
+            auth_service = AuthService(logger, oauth2_scheme, db)
             break
         except PrismaError as e:
             if attempt == max_retries - 1:
@@ -75,6 +89,30 @@ VISITOR_COLLECTION = "visitor_embeddings"
 
 MODEL_NAME = "VGG-Face"
 
+def create_milvus_collection(collection_name):
+    """Create Milvus collection if it doesn't exist"""
+    if not Collection.loaded_collection_names or collection_name not in Collection.loaded_collection_names:
+        from pymilvus import CollectionSchema, FieldSchema, DataType
+        
+        # Define fields for the collection
+        fields = [
+            FieldSchema(name="name", dtype=DataType.VARCHAR, max_length=200, is_primary=True),
+            FieldSchema(name="embedding", dtype=DataType.FLOAT_VECTOR, dim=2622)  # VGG-Face dimension
+        ]
+        
+        schema = CollectionSchema(fields=fields, description=f"Schema for {collection_name}")
+        collection = Collection(name=collection_name, schema=schema)
+        
+        # Create index for the embedding field
+        index_params = {
+            "metric_type": "IP",
+            "index_type": "IVF_FLAT",
+            "params": {"nlist": 1024}
+        }
+        collection.create_index(field_name="embedding", index_params=index_params)
+        print(f"Created collection: {collection_name}")
+        return collection
+
 def connect_to_milvus():
     attempts = 5
     for attempt in range(attempts):
@@ -89,6 +127,11 @@ def connect_to_milvus():
                 timeout=60
             )
             print(f"Connected to Milvus at {MILVUS_HOST}:{MILVUS_PORT}")
+            
+            # Create collections if they don't exist
+            create_milvus_collection(EMPLOYEE_COLLECTION)
+            create_milvus_collection(VISITOR_COLLECTION)
+            
             return True
         except Exception as e:
             print(f"Connection attempt {attempt + 1} failed: {e}")
@@ -193,9 +236,54 @@ def search_in_milvus(collection_name, query_embedding, threshold=0.6):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error during search: {str(e)}")
 
-# --- API Endpoints ---
+# Authentication endpoints
+@app.post("/auth/register")
+async def register_user(form_data: OAuth2PasswordRequestForm = Depends()):
+    """Register a new user."""
+    try:
+        await auth_service.register_user(
+            username=form_data.username,
+            password=form_data.password,
+            email=form_data.client_id or "",  # Using client_id field for email
+            full_name=form_data.client_secret or "",  # Using client_secret field for full name
+        )
+        return {"message": "User registered successfully"}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/auth/token")
+async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    """Login endpoint to get access token."""
+    try:
+        if await auth_service.validate_credentials(form_data.username, form_data.password):
+            token = await auth_service.generate_token(form_data.username)
+            return {"access_token": token, "token_type": "bearer"}
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    except Exception as e:
+        logger.error(f"Login error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error during login"
+        )
+
+# Middleware to protect routes
+async def verify_token(token: str = Depends(oauth2_scheme)):
+    if not await auth_service.validate_token(token):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return token
+
+# Protected routes - add authentication requirement
 @app.post("/register-employee/")
 async def register_employee(
+    token: str = Depends(verify_token),
     name: str = Form(...),
     age: int = Form(...),
     gender: str = Form(...),
@@ -224,6 +312,7 @@ async def register_employee(
 
 @app.post("/register-visitor/")
 async def register_visitor(
+    token: str = Depends(verify_token),
     name: str = Form(...),
     age: int = Form(...),
     gender: str = Form(...),
@@ -251,7 +340,10 @@ async def register_visitor(
 
 
 @app.post("/recognize-employee/")
-async def recognize_employee(photo: UploadFile):
+async def recognize_employee(
+    photo: UploadFile,
+    token: str = Depends(verify_token)
+):
     try:
         # Read the uploaded photo bytes
         photo_bytes = await photo.read()
@@ -278,7 +370,10 @@ async def recognize_employee(photo: UploadFile):
     
     
 @app.post("/recognize-visitor/")
-async def recognize_visitor(photo: UploadFile):
+async def recognize_visitor(
+    photo: UploadFile,
+    token: str = Depends(verify_token)
+):
     try:
         photo_bytes = await photo.read() 
         query_embedding = extract_face_embedding(photo_bytes)
