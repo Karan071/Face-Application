@@ -122,15 +122,15 @@ services:
       - postgres_data:/var/lib/postgresql/data
     restart: always
 
-  # attu:
-  #   container_name: attu
-  #   image: zilliz/attu:v2.4.0
-  #   ports:
-  #     - "3000:3000" # Attu dashboard
-  #   environment:
-  #     - MILVUS_URL=http://standalone:19530 # Connect to the Milvus standalone service
-  #   depends_on:
-  #     - "standalone"
+  attu:
+    container_name: attu
+    image: zilliz/attu:v2.4.0
+    ports:
+      - "3000:3000" # Attu dashboard
+    environment:
+      - MILVUS_URL=http://standalone:19530 # Connect to the Milvus standalone service
+    depends_on:
+      - "standalone"
 
 networks:
   default:
