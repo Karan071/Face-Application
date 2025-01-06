@@ -318,17 +318,6 @@ async def register_visitor(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error during registration: {str(e)}")
 
-# @app.post("/recognize-employee/")
-# async def recognize_employee(photo: UploadFile):
-#     try:
-#         photo_bytes = await photo.read() 
-#         query_embedding = extract_face_embedding(photo_bytes)
-#         result = search_in_milvus(EMPLOYEE_COLLECTION, query_embedding)
-#         if result["match_found"]:
-#             return {"name": result["name"], "similarity": result["similarity"]}
-#         return {"message": result["message"]}
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=f"Error in recognition: {str(e)}")
 
 @app.post("/recognize-employee/")
 async def recognize_employee(photo: UploadFile):
