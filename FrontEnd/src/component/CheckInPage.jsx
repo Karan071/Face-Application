@@ -64,7 +64,7 @@ const CheckInPage = () => {
         </div>
 
         {/* Webcam Section */}
-        <div className="relative w-full max-w-screen-lg flex flex-col justify-center items-center bg-white shadow-md rounded-lg p-4 mt-4">
+        <div className="relative w-full max-w-screen-lg flex flex-col justify-center items-center bg-white rounded-lg p-4 mt-4">
           {!capturedImage ? (
             <Webcam
               audio={false}
@@ -72,13 +72,13 @@ const CheckInPage = () => {
               screenshotFormat="image/jpeg"
               height={400}
               width={750}
-              className="rounded-lg shadow-md"
+              className="rounded-lg"
             />
           ) : (
             <img
               src={capturedImage}
               alt="Captured image"
-              className="rounded-lg shadow-md"
+              className="rounded-lg"
               height={400}
               width={750}
             />

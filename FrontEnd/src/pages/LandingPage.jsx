@@ -2,6 +2,8 @@ import React from "react";
 import logo from "../assets/face-icon.gif";
 import logo1 from "../assets/image-p.png";
 import { Link } from "react-router-dom";
+import Typewriter from 'typewriter-effect';
+
 
 const LandingPage = () => {
   return (
@@ -14,13 +16,13 @@ const LandingPage = () => {
             VisionEdge
           </p>
         </div>
-        <Link to= "/login">
-        <button
-          type="button"
-          className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-full text-sm px-5 py-3 md:px-6 md:py-3.5 mt-2 md:mt-0"
-        >
-          Sign Up
-        </button>
+        <Link to="/login">
+          <button
+            type="button"
+            className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-full text-sm px-5 py-3 md:px-6 md:py-3.5 mt-2 md:mt-0"
+          >
+            Sign Up
+          </button>
         </Link>
       </nav>
 
@@ -29,21 +31,28 @@ const LandingPage = () => {
         {/* Text Section */}
         <div className="text-center md:text-left max-w-lg w-full md:w-1/2 ">
           <p className="text-4xl md:text-6xl font-extrabold bg-gradient-to-r from-indigo-600 via-blue-500 to-indigo-400 inline-block text-transparent bg-clip-text">
-            VisionEdge
+          Vision Edge
           </p>
           <p className="font-thin text-gray-700 text-xl md:text-3xl mt-4">
-            Redefining Recognition, One Face at a Time
+            
+            <Typewriter
+            options={{
+              strings: ['Redefining Recognition, One Face at a Time'],
+              autoStart: true,
+              loop: true,
+            }}
+          />
           </p>
           <p className="text-gray-600 text-lg md:text-xl mt-4 mb-6">
             Your All-in-One Solution for Every Need.
           </p>
           <Link to="/login">
-          <button
-            type="button"
-            className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-full text-lg md:text-xl px-6 py-3 md:px-8 md:py-4"
-          >
-            Get Started
-          </button>
+            <button
+              type="button"
+              className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-full text-lg md:text-xl px-6 py-3 md:px-8 md:py-4"
+            >
+              Get Started
+            </button>
           </Link>
         </div>
 
