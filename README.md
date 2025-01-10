@@ -1,4 +1,4 @@
-# Face Recognition Backend API && ReactJs 
+# Face Recognition Backend API & ReactJs for Front-End 
 
 ## Overview
 
