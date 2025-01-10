@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 
 const CheckIn = () => {
   return (
-    <div className="h-screen flex flex-col bg-gray-50 font-poppins">
+    <div className="h-screen flex flex-col bg-gray-50 font-mono">
       <div className="w-full">
         <VisionEdge />
       </div>

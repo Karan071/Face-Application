@@ -7,7 +7,7 @@ import Typewriter from 'typewriter-effect';
 
 const LandingPage = () => {
   return (
-    <div className="font-poppins">
+    <div className="font-mono">
       {/* Navbar */}
       <nav className="flex flex-wrap justify-between items-center px-6 md:px-14 py-4 bg-white shadow-sm">
         <div className="flex items-center">

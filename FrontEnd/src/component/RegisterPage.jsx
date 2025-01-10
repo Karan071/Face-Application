@@ -72,7 +72,7 @@ const RegisterPage = () => {
             className="h-screen w-screen bg-cover bg-center flex flex-col md:flex-row"
             style={{ backgroundImage: `url(${bg})` }}
         >
-            <div className="h-full w-full md:w-1/3 flex items-center justify-center md:justify-start bg-white rounded-sm">
+            <div className="font-mono h-full w-full md:w-1/3 flex items-center justify-center md:justify-start bg-white rounded-sm">
                 <form className="max-w-lg w-full p-6 sm:p-8 bg-white rounded-md md:ml-12 mx-4">
                     {/* Title */}
                     <div className="mb-6">

@@ -7,7 +7,7 @@ import asset1 from '../assets/ai-bg.png';
 
 const MainPage = () => {
     return (
-        <div className="font-poppins">
+        <div className="font-mono">
             <VisionEdge />
 
             <div className="text-center">

@@ -63,11 +63,11 @@ const LoginPage = () => {
 
     return (
         <div
-            className="h-screen w-screen bg-cover bg-center flex flex-col md:flex-row"
+            className="h-screen w-screen bg-cover bg-center flex flex-col md:flex-row "
             style={{ backgroundImage: `url(${bg})` }}
         >
             {/* Form Container */}
-            <div className="h-full w-full md:w-1/3 flex items-center justify-center md:justify-start bg-white rounded-sm">
+            <div className="h-full w-full md:w-1/3 flex items-center justify-center md:justify-start bg-white rounded-sm font-mono">
                 <form className="max-w-lg w-full p-6 sm:p-8 bg-white rounded-md md:ml-12 mx-4">
                     <div className="mb-6">
 

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 
 const InternalServer = () => {
     return (
-        <div className="w-full h-screen flex flex-col justify-center items-center bg-gray-50 px-6">
+        <div className="w-full h-screen flex flex-col justify-center items-center bg-gray-50 px-6 font-mono">
             <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-indigo-600 via-blue-500 to-indigo-400 inline-block text-transparent bg-clip-text mb-5">Something Went Wrong</h1>
             <h3 className="text-xl md:text-2xl font-semibold text-gray-600 mb-2">
                 500 - Internal Server Error

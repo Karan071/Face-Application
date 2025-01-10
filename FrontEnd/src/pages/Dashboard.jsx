@@ -11,7 +11,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="font-poppins">
+    <div className="font-mono">
       <VisionEdge />
 
       {/* Toggle Slider */}

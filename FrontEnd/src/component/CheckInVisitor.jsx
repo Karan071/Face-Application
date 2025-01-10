@@ -57,7 +57,7 @@ const CheckInVisitor = () => {
   return (
     <div>
       {/* Header */}
-      <div className="flex flex-col items-center">
+      <div className="flex flex-col items-center font-mono">
 
         <div className="text-center my-6">
           <p className="text-4xl font-semibold text-gray-700 font-poppins mt-2 bg-gradient-to-r from-indigo-600 via-blue-500 to-indigo-400 inline-block text-transparent bg-clip-text">

@@ -95,7 +95,7 @@ const RegisterVisitor = () => {
   return (
     <>
       <VisionEdge />
-      <div className="font-poppins bg-gray-50 min-h-screen flex justify-center items-center px-4 sm:px-6 lg:px-8">
+      <div className="font-mono bg-gray-50 min-h-screen flex justify-center items-center px-4 sm:px-6 lg:px-8">
         <div>
           <h1 className="text-3xl md:text-4xl font-bold text-center text-gradient bg-gradient-to-r from-indigo-600 via-blue-500 to-indigo-400 bg-clip-text text-transparent mb-4">
             VisionEdge <span className="font-thin text-gray-500">Visitor Check-In</span>

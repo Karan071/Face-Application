@@ -11,12 +11,12 @@ const CheckIn = () => {
         <VisionEdge /> 
       </div>
 
-      <div className="flex-1 flex flex-col items-center mt-6">
+      <div className="flex-1 flex flex-col items-center mt-6 font-mono">
         <p className="text-4xl font-thin text-gray-700 mb-4 mt-11">
           Check In Successful
         </p>
         <div className="mt-9">
-          <div className="flex flex-col items-center justify-center p-8 border-2 border-green-600 bg-green-50 rounded-lg shadow-lg w-96">
+          <div className="flex flex-col items-center justify-center p-8 border-2 border-green-600 bg-green-50 rounded-lg shadow-lg w-96 ">
           
                 {/* icon */}
                 <FaCheckCircle className="text-green-600" size={72} />

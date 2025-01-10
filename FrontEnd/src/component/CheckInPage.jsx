@@ -55,7 +55,7 @@ const CheckInPage = () => {
 
   return (
     <div>
-      <div className="flex flex-col items-center">
+      <div className="flex flex-col items-center font-mono">
         <div className="text-center">
           <p className="text-4xl font-semibold text-gray-700 font-poppins mt-8 bg-gradient-to-r from-indigo-600 via-blue-500 to-indigo-400 inline-block text-transparent bg-clip-text">
             VisionEdge{" "}
