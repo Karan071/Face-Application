@@ -10,9 +10,8 @@ import RegisterVisitor from "./pages/RegisterVisitor";
 import MainPage from "./pages/MainPage";
 import PageNotFound from "./pages/PageNotFound";
 import InternalServer from "./pages/InternalServer";
-import RegisterPage from "./component/RegisterPage"
-
-import Signup from "./component/Signup";
+// import RegisterPage from "./component/RegisterPage"
+// import Signup from "./component/Signup";
 
 function App() {
   return (
@@ -28,8 +27,8 @@ function App() {
         <Route path="/success" element = {<SuccessPage/>} />
         <Route path="/error" element = {<ErrorPage/>} />
 
-        <Route path="/login" element = {<Signup/>} />
-        <Route path="/register" element = {<RegisterPage/>} />
+        {/* <Route path="/login" element = {<Signup/>} />
+        <Route path="/register" element = {<RegisterPage/>} /> */}
 
         {/* Page not found && Internal Server error */}
         <Route path="*" element = {<PageNotFound/>} />

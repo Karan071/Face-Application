@@ -2,6 +2,7 @@ import React, { useState, useRef } from "react";
 import Webcam from "react-webcam";
 import axios from "axios";
 import VisionEdge from "../utils/VisionEdge";
+import { RxLoop } from "react-icons/rx";
 
 const RegisterEmployee = () => {
   const [formData, setFormData] = useState({
@@ -92,7 +93,7 @@ const RegisterEmployee = () => {
       console.error("Error response data:", error.response?.data);
       alert(
         error.response?.data?.message ||
-          "An error occurred while submitting the form."
+        "An error occurred while submitting the form."
       );
     }
   };
@@ -212,13 +213,21 @@ const RegisterEmployee = () => {
                   Capture Photo
                 </button>
               ) : (
-                <button
-                  type="button"
-                  onClick={handleSubmit}
-                  className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-full text-sm px-5 py-3 md:px-6 md:py-3.5 mt-2 md:mt-0"
-                >
-                  Submit
-                </button>
+                <div className="flex justify-center items-center gap-10">
+                  <button
+                    type="button"
+                    onClick={handleSubmit}
+                    className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-full text-sm px-5 py-3 md:px-6 md:py-3.5 mt-2 md:mt-0"
+                  >
+                    Submit
+                  </button>
+                  <button
+                    className="mt-3 text-gray-600 hover:text-blue-700 focus:outline-none transition-colors duration-200"
+                    onClick={() => retake()}
+                  >
+                    <RxLoop className="w-6 h-6" />
+                  </button>
+                </div>
               )}
             </div>
           </form>

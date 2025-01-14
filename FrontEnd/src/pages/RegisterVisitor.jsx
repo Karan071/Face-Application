@@ -2,6 +2,7 @@ import React, { useState, useRef } from "react";
 import Webcam from "react-webcam";
 import axios from "axios";
 import VisionEdge from "../utils/VisionEdge";
+import { RxLoop } from "react-icons/rx";
 
 const RegisterVisitor = () => {
   const [formData, setFormData] = useState({
@@ -14,16 +15,21 @@ const RegisterVisitor = () => {
   });
   const [capturedPhoto, setCapturedPhoto] = useState(null);
   const webcamRef = useRef(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const capturePhoto = () => {
     const photoSrc = webcamRef.current.getScreenshot();
     setCapturedPhoto(photoSrc);
   };
 
+  const retake = () => {
+    setCapturedPhoto(null);
+  }
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
-  };        
+  };
 
   const validateForm = () => {
     const errors = {};
@@ -41,6 +47,11 @@ const RegisterVisitor = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (isSubmitting) {
+      return;
+    }
+
     const errors = validateForm();
     if (Object.keys(errors).length > 0) {
       alert(Object.values(errors).join("\n"));
@@ -53,6 +64,8 @@ const RegisterVisitor = () => {
     }
 
     try {
+      setIsSubmitting(true);
+
       const photoBlob = await fetch(capturedPhoto).then((res) => res.blob());
       const formDataObj = new FormData();
       formDataObj.append("name", formData.name);
@@ -87,8 +100,12 @@ const RegisterVisitor = () => {
       console.error("Error while submitting the form:", error);
       alert(
         error.response?.data?.message ||
-          "An error occurred while submitting the form."
+        "An error occurred while submitting the form."
       );
+    } finally {
+      setTimeout(() => {
+        setIsSubmitting(false);
+      }, 3000);
     }
   };
 
@@ -97,7 +114,7 @@ const RegisterVisitor = () => {
       <VisionEdge />
       <div className="font-mono bg-gray-50 min-h-screen flex justify-center items-center px-4 sm:px-6 lg:px-8">
         <div>
-          <h1 className="text-3xl md:text-4xl font-bold text-center text-gradient bg-gradient-to-r from-indigo-600 via-blue-500 to-indigo-400 bg-clip-text text-transparent mb-4">
+          <h1 className="text-3xl md:text-4xl font-bold text-center text-gradient bg-gradient-to-r from-indigo-600 via-blue-500 to-indigo-400 bg-clip-text text-transparent mb-10">
             VisionEdge <span className="font-thin text-gray-500">Visitor Check-In</span>
           </h1>
           <p className="text-center text-gray-600 mb-6">
@@ -182,7 +199,7 @@ const RegisterVisitor = () => {
             />
 
             <div className="flex justify-center">
-            {!capturedPhoto ? (
+              {!capturedPhoto ? (
                 <button
                   onClick={capturePhoto}
                   type="button"
@@ -191,13 +208,23 @@ const RegisterVisitor = () => {
                   Capture Photo
                 </button>
               ) : (
-                <button
-                  type="button"
-                  onClick={handleSubmit}
-                  className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-full text-sm px-5 py-3 md:px-6 md:py-3.5 mt-2 md:mt-0"
-                >
-                  Submit
-                </button>
+                <div className="flex justify-center items-center gap-5">
+                  <button
+                    type="button"
+                    onClick={handleSubmit}
+                    disabled={isSubmitting}
+                    className={`text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-full text-sm px-5 py-3 md:px-6 md:py-3.5 mt-2 md:mt-0 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                  >
+                    {isSubmitting ? 'Submitting...' : 'Submit'}
+                  </button>
+                  <button
+                  className=""
+                  onClick={() => retake()}
+                  >
+                    <RxLoop className="w-6 h-6" />
+                  </button>
+                </div>
               )}
             </div>
           </form>

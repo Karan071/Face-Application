@@ -16,14 +16,23 @@ const LandingPage = () => {
             VisionEdge
           </p>
         </div>
-        <Link to="/login">
+        {/* dummy button */}
+        <Link to="/main-page">
+          <button
+            type="button"
+            className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-full text-sm px-5 py-3 md:px-6 md:py-3.5 mt-2 md:mt-0"
+          >
+            Get Started
+          </button>
+        </Link>
+         {/* <Link to="/login">
           <button
             type="button"
             className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-full text-sm px-5 py-3 md:px-6 md:py-3.5 mt-2 md:mt-0"
           >
             Sign Up
           </button>
-        </Link>
+        </Link> */}
       </nav>
 
       {/* Middle Section */}
@@ -33,6 +42,7 @@ const LandingPage = () => {
           <p className="text-4xl md:text-6xl font-extrabold bg-gradient-to-r from-indigo-600 via-blue-500 to-indigo-400 inline-block text-transparent bg-clip-text">
           Vision Edge
           </p>
+          
           <p className="font-thin text-gray-700 text-xl md:text-3xl mt-4">
             
             <Typewriter
@@ -43,10 +53,11 @@ const LandingPage = () => {
             }}
           />
           </p>
+
           <p className="text-gray-600 text-lg md:text-xl mt-4 mb-6">
             Your All-in-One Solution for Every Need.
           </p>
-          <Link to="/login">
+          <Link to="/main-page">
             <button
               type="button"
               className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-full text-lg md:text-xl px-6 py-3 md:px-8 md:py-4"

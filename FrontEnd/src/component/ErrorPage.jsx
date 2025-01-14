@@ -26,7 +26,7 @@ const CheckIn = () => {
 
             {/* name and data passed */}
             <p className="text-gray-700 text-center text-2xl mt-3">Try Again, Something went Wrong !!</p>
-            <Link>
+            <Link to="/dashboard">
               <button
                 // onClick={onRetry}
                 className="mt-6 px-5 py-2 border-2 border-red-600 text-red-600 font-semibold rounded-lg hover:bg-red-600 hover:text-white transition duration-300 ease-in-out transform hover:scale-105"
