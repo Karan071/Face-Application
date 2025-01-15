@@ -16,6 +16,7 @@ const RegisterEmployee = () => {
     description: "",
   });
   const [capturedPhoto, setCapturedPhoto] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const webcamRef = useRef(null);
 
   const navigate = useNavigate();
@@ -47,6 +48,9 @@ const RegisterEmployee = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if(isSubmitting){
+      return;
+    }
     const errors = validateForm();
     if (Object.keys(errors).length > 0) {
       alert(Object.values(errors).join("\n"));
@@ -59,6 +63,7 @@ const RegisterEmployee = () => {
     }
 
     try {
+      setIsSubmitting(true);
       const photoBlob = await fetch(capturedPhoto).then((res) => res.blob());
       const formDataObj = new FormData();
       formDataObj.append("name", formData.name);
@@ -99,6 +104,10 @@ const RegisterEmployee = () => {
         error.response?.data?.message ||
         "An error occurred while submitting the form."
       );
+    }finally {
+      setTimeout(() => {
+        setIsSubmitting(false);
+      },3000);
     }
   };
 
@@ -223,7 +232,7 @@ const RegisterEmployee = () => {
                     onClick={handleSubmit}
                     className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-full text-sm px-5 py-3 md:px-6 md:py-3.5 mt-2 md:mt-0"
                   >
-                    Submit
+                    {isSubmitting ? 'Submitting...' : 'Submit'}
                   </button>
                   <button
                     className="mt-3 text-gray-600 hover:text-blue-700 focus:outline-none transition-colors duration-200"
