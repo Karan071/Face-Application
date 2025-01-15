@@ -1,8 +1,10 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import bg from "../assets/adminPanel.png";
 import axios from "axios";
 
 const RegisterPage = () => {
+    const navigate = useNavigate();
     const [formData, setFormData] = useState({
         fullname: "",
         username: "",
@@ -36,14 +38,14 @@ const RegisterPage = () => {
 
         try {
             // TEST LINES : )
-            console.log("Payload:", formData);
+            // console.log("Payload:", formData);
 
             const formDataObj = new URLSearchParams();
-            urlEncodedData.append("fullname", formData.fullname);
-            urlEncodedData.append("username", formData.username);
-            urlEncodedData.append("email", formData.email);
-            urlEncodedData.append("password", formData.password);
-            urlEncodedData.append("role", formData.role);
+            formDataObj.append("fullname", formData.fullname);
+            formDataObj.append("username", formData.username);
+            formDataObj.append("email", formData.email);
+            formDataObj.append("password", formData.password);
+            formDataObj.append("role", formData.role);
 
             const response = await axios.post("http://localhost:8000/register/", formDataObj, {
                 headers: {
@@ -58,6 +60,7 @@ const RegisterPage = () => {
                 password: "",
                 role: "",
             });
+            navigate('/main-page');
         } catch (error) {
             console.error("Error while submitting the form:", error);
             alert(

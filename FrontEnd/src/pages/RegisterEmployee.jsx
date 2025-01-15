@@ -3,6 +3,7 @@ import Webcam from "react-webcam";
 import axios from "axios";
 import VisionEdge from "../utils/VisionEdge";
 import { RxLoop } from "react-icons/rx";
+import { useNavigate } from "react-router-dom";
 
 const RegisterEmployee = () => {
   const [formData, setFormData] = useState({
@@ -16,6 +17,8 @@ const RegisterEmployee = () => {
   });
   const [capturedPhoto, setCapturedPhoto] = useState(null);
   const webcamRef = useRef(null);
+
+  const navigate = useNavigate();
 
   const capturePhoto = () => {
     const photoSrc = webcamRef.current.getScreenshot();
@@ -88,6 +91,7 @@ const RegisterEmployee = () => {
         description: "",
       });
       setCapturedPhoto(null);
+      navigate("/dashboard")
     } catch (error) {
       console.error("Error while submitting the form:", error);
       console.error("Error response data:", error.response?.data);

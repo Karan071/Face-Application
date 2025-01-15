@@ -3,6 +3,7 @@ import Webcam from "react-webcam";
 import axios from "axios";
 import VisionEdge from "../utils/VisionEdge";
 import { RxLoop } from "react-icons/rx";
+import {useNavigate} from "react-router-dom";
 
 const RegisterVisitor = () => {
   const [formData, setFormData] = useState({
@@ -13,6 +14,7 @@ const RegisterVisitor = () => {
     purposeOfVisit: "",
     description: "",
   });
+  const navigate = useNavigate();
   const [capturedPhoto, setCapturedPhoto] = useState(null);
   const webcamRef = useRef(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -96,6 +98,7 @@ const RegisterVisitor = () => {
         description: "",
       });
       setCapturedPhoto(null);
+      navigate("/dashboard")
     } catch (error) {
       console.error("Error while submitting the form:", error);
       alert(
