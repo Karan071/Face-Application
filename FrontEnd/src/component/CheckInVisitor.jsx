@@ -1,6 +1,6 @@
 import React, { useRef, useState } from "react";
 import Webcam from 'react-webcam';
-import { Link } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { RxLoop } from "react-icons/rx";
 
@@ -8,9 +8,11 @@ const CheckInVisitor = () => {
   const webcamRef = useRef(null); // Ref for the webcam
   const [capturedImage, setCapturedImage] = useState(null); // State to store captured image
 
+  const navigate = useNavigate();
+
   const capturePhoto = () => {
-    const imageSrc = webcamRef.current.getScreenshot(); // Capture the photo
-    setCapturedImage(imageSrc); // Store the captured image
+    const imageSrc = webcamRef.current.getScreenshot(); 
+    setCapturedImage(imageSrc);
   };
 
   const retake = () => {
@@ -42,19 +44,28 @@ const CheckInVisitor = () => {
       const { status, name, similarity, message } = response.data;
 
       if (status === "success") {
-        alert(
-          `Recognition successful! Name: ${name}, Similarity: ${similarity.toFixed(2)}`
-        );
+        // alert(
+        //   `Recognition successful! Name: ${name}, Similarity: ${similarity.toFixed(2)}`
+        // );
+        navigate("/success", {
+          state : {
+            name,
+            similarity: similarity.toFixed(2),
+            photo: capturedImage
+          }
+        })
       } else {
-        alert(
-          `Recognition failed. ${message || "Please try again with a clearer photo."}`
-        );
+        // alert(
+        //   `Recognition failed. ${message || "Please try again with a clearer photo."}`
+        // );
+        navigate("/error");
       }
     } catch (error) {
       console.error("Error during the submission :", error);
-      alert(
-        "An error occured. Please try again!"
-      )
+      // alert(
+      //   "An error occured. Please try again!"
+      // )
+      navigate("/error");
     }
   };
 
@@ -95,7 +106,7 @@ const CheckInVisitor = () => {
 
           <div className="mt-6 text-center">
             <Link to="/register-visitor">
-              <p className="text-sm sm:text-lg text-indigo-700 hover:underline">
+              <p className="text-sm sm:text-lg text-indigo-700">
                 New Visitor here? Tap here!
               </p>
             </Link>
