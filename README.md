@@ -273,8 +273,8 @@ Employee
 Visitor
 ![image](https://github.com/user-attachments/assets/4385bac8-06d9-4ebd-8043-6933235bb8f7)
 
-
-
+Working Model Representation
+![Untitled-2025-01-20-1715](https://github.com/user-attachments/assets/8acc5376-20ec-4103-bd04-39dd2de1cf2f)
 
 # Scope for Improvements
 1) Rate limiter for requests
