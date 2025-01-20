@@ -1,6 +1,6 @@
 import React from "react";
 import logo from "../assets/face-icon.gif";
-import logo1 from "../assets/image-p.png";
+import logo1 from "../assets/image.png";
 import { Link } from "react-router-dom";
 import Typewriter from 'typewriter-effect';
 
